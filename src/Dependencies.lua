@@ -50,6 +50,11 @@ gSounds = {
     ['next-level'] = love.audio.newSource('sounds/next-level.wav', 'static')
 }
 
+-- set volume of all sounds
+for k, sound in pairs(gSounds) do
+	sound:setVolume(0.05)
+end
+
 gTextures = {
     ['main'] = love.graphics.newImage('graphics/match3.png'),
     ['background'] = love.graphics.newImage('graphics/background.png')

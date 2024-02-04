@@ -195,6 +195,10 @@ function PlayState:calculateMatches()
 
         -- add score for each match
         for k, match in pairs(matches) do
+			print("timer was", self.timer)
+			self.timer = self.timer + #match
+			print("timer is now", self.timer)
+			
             self.score = self.score + #match * 50
         end
 
