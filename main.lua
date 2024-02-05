@@ -25,9 +25,7 @@
 
     Cool texture generator, used for background:
     http://cpetry.github.io/TextureGenerator-Online/
-]]
-
--- initialize our nearest-neighbor filter
+]] -- initialize our nearest-neighbor filter
 love.graphics.setDefaultFilter('nearest', 'nearest')
 
 -- this time, we're keeping all requires and assets in our Dependencies.lua file
@@ -45,7 +43,7 @@ VIRTUAL_HEIGHT = 288
 BACKGROUND_SCROLL_SPEED = 80
 
 function love.load()
-    
+
     -- window bar title
     love.window.setTitle('Match 3')
 
@@ -66,10 +64,18 @@ function love.load()
 
     -- initialize state machine with all state-returning functions
     gStateMachine = StateMachine {
-        ['start'] = function() return StartState() end,
-        ['begin-game'] = function() return BeginGameState() end,
-        ['play'] = function() return PlayState() end,
-        ['game-over'] = function() return GameOverState() end
+        ['start'] = function()
+            return StartState()
+        end,
+        ['begin-game'] = function()
+            return BeginGameState()
+        end,
+        ['play'] = function()
+            return PlayState()
+        end,
+        ['game-over'] = function()
+            return GameOverState()
+        end
     }
     gStateMachine:change('start')
 
@@ -78,6 +84,7 @@ function love.load()
 
     -- initialize input table
     love.keyboard.keysPressed = {}
+    love.mouse.buttonsPressed = {}
 end
 
 function love.resize(w, h)
@@ -85,13 +92,31 @@ function love.resize(w, h)
 end
 
 function love.keypressed(key)
-    
+
     -- add to our table of keys pressed this frame
     love.keyboard.keysPressed[key] = true
 end
 
 function love.keyboard.wasPressed(key)
-    if love.keyboard.keysPressed[key] then
+	if love.keyboard.keysPressed[key] then
+		return true
+	else
+		return false
+	end
+end
+
+function love.mousePosition()
+	-- get mouse coordinates
+	local mouseX, mouseY = push:toGame(love.mouse.getPosition())
+	return mouseX, mouseY
+end
+
+function love.mousepressed(x, y, button)
+    love.mouse.buttonsPressed[button] = true
+end
+
+function love.mouse.wasPressed(button)
+    if love.mouse.buttonsPressed[button] then
         return true
     else
         return false
@@ -99,10 +124,10 @@ function love.keyboard.wasPressed(key)
 end
 
 function love.update(dt)
-    
+
     -- scroll background, used across all states
     backgroundX = backgroundX - BACKGROUND_SCROLL_SPEED * dt
-    
+
     -- if we've scrolled the entire image, reset it to 0
     if backgroundX <= -1024 + VIRTUAL_WIDTH - 4 + 51 then
         backgroundX = 0
@@ -111,6 +136,7 @@ function love.update(dt)
     gStateMachine:update(dt)
 
     love.keyboard.keysPressed = {}
+	love.mouse.buttonsPressed = {}
 end
 
 function love.draw()
@@ -118,7 +144,7 @@ function love.draw()
 
     -- scrolling background drawn behind every state
     love.graphics.draw(gTextures['background'], backgroundX, 0)
-    
+
     gStateMachine:render()
     push:finish()
 end
