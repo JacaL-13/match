@@ -61,7 +61,7 @@ function PlayState:enter(params)
     self.level = params.level
 
     -- spawn a board and place it toward the right
-    self.board = params.board or Board(VIRTUAL_WIDTH - 272, 16)
+    self.board = params.board or Board(VIRTUAL_WIDTH - 272, 16, self.level)
 
     -- grab score from params if it was passed
     self.score = params.score or 0
@@ -204,20 +204,13 @@ function PlayState:calculateMatches()
     self.highlightedTile = nil
 
     -- if we have any matches, remove them and tween the falling blocks that result
-    local matches = self.board:calculateMatches()
+    local matches, score = self.board:calculateMatches()
 
     if matches then
         gSounds['match']:stop()
         gSounds['match']:play()
 
-        -- add score for each match
-        for k, match in pairs(matches) do
-            print("timer was", self.timer)
-            self.timer = self.timer + #match
-            print("timer is now", self.timer)
-
-            self.score = self.score + #match * 50
-        end
+        self.score = self.score + score * 50
 
         -- remove any tiles that matched from the board, making empty spaces
         self.board:removeMatches()
