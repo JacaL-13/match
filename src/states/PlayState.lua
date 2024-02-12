@@ -61,7 +61,7 @@ function PlayState:enter(params)
     self.level = params.level
 
     -- spawn a board and place it toward the right
-    self.board = params.board or Board(VIRTUAL_WIDTH - 272, 16, self.level)
+    self.board = params.board or Board(VIRTUAL_WIDTH - 272, 16, params.level)
 
     -- grab score from params if it was passed
     self.score = params.score or 0
@@ -156,36 +156,69 @@ function PlayState:update(dt)
                 gSounds['error']:play()
                 self.highlightedTile = nil
             else
+                -- store tiles for swapping and unswapping
+                local storeTile1 = self.highlightedTile
+                local storeTile2 = self.board.tiles[y][x]
 
                 -- swap grid positions of tiles
-                local tempX = self.highlightedTile.gridX
-                local tempY = self.highlightedTile.gridY
+                local tempX = storeTile1.gridX
+                local tempY = storeTile1.gridY
 
-                local newTile = self.board.tiles[y][x]
-
-                self.highlightedTile.gridX = newTile.gridX
-                self.highlightedTile.gridY = newTile.gridY
-                newTile.gridX = tempX
-                newTile.gridY = tempY
+                storeTile1.gridX = storeTile2.gridX
+                storeTile1.gridY = storeTile2.gridY
+                storeTile2.gridX = tempX
+                storeTile2.gridY = tempY
 
                 -- swap tiles in the tiles table
-                self.board.tiles[self.highlightedTile.gridY][self.highlightedTile.gridX] = self.highlightedTile
+                self.board.tiles[storeTile1.gridY][storeTile1.gridX] = storeTile1
 
-                self.board.tiles[newTile.gridY][newTile.gridX] = newTile
+                self.board.tiles[storeTile2.gridY][storeTile2.gridX] = storeTile2
 
+                self.canInput = false
                 -- tween coordinates between the two so they swap
                 Timer.tween(0.1, {
                     [self.highlightedTile] = {
-                        x = newTile.x,
-                        y = newTile.y
+                        x = storeTile2.x,
+                        y = storeTile2.y
                     },
-                    [newTile] = {
+                    [storeTile2] = {
                         x = self.highlightedTile.x,
                         y = self.highlightedTile.y
                     }
-                }) -- once the swap is finished, we can tween falling blocks as needed
-                :finish(function()
-                    self:calculateMatches()
+                }):finish(function()
+                    -- once the swap is finished, check if no matches and unswap
+                    if self:calculateMatches() == false then
+                        local tempX2 = storeTile1.gridX
+                        local tempY2 = storeTile1.gridY
+
+                        storeTile1.gridX = storeTile2.gridX
+                        storeTile1.gridY = storeTile2.gridY
+                        storeTile2.gridX = tempX2
+                        storeTile2.gridY = tempY2
+
+                        -- swap tiles in the tiles table
+                        self.board.tiles[storeTile1.gridY][storeTile1.gridX] = storeTile1
+
+                        self.board.tiles[storeTile2.gridY][storeTile2.gridX] = storeTile2
+
+                        Timer.tween(0.1, {
+                            [storeTile1] = {
+                                x = storeTile2.x,
+                                y = storeTile2.y
+                            },
+                            [storeTile2] = {
+                                x = storeTile1.x,
+                                y = storeTile1.y
+                            }
+                        }):finish(function()
+							-- restore input after both tweens are finished
+                            self.canInput = true
+                        end)
+                    else
+						-- if we have matches restore input after first tween
+                        self.canInput = true
+                    end
+
                 end)
             end
         end
@@ -201,6 +234,7 @@ end
     to the Board class.
 ]]
 function PlayState:calculateMatches()
+
     self.highlightedTile = nil
 
     -- if we have any matches, remove them and tween the falling blocks that result
@@ -211,6 +245,7 @@ function PlayState:calculateMatches()
         gSounds['match']:play()
 
         self.score = self.score + score * 50
+        self.timer = self.timer + score
 
         -- remove any tiles that matched from the board, making empty spaces
         self.board:removeMatches()
@@ -227,10 +262,10 @@ function PlayState:calculateMatches()
             self:calculateMatches()
         end)
 
-        -- if no matches, we can continue playing
     else
-        self.canInput = true
+        return false
     end
+
 end
 
 function PlayState:render()
